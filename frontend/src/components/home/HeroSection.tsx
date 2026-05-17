@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, TrendingUp, Shield, Crown, Zap } from "lucide-react";
+import { ArrowRight, Sparkles, TrendingUp, Building2, Crown, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -183,7 +183,7 @@ export function HeroSection() {
           >
             {[
               { icon: TrendingUp, label: isPremium ? "40%" : formatIndianCurrency(stats?.cashbackPaid ?? 0), sublabel: isPremium ? "Extra Cashback" : "Cashback Paid" },
-              { icon: Shield, label: (stats?.partnerBrands ?? 0) > 0 ? `${stats?.partnerBrands}+` : "0", sublabel: "Partner Brands" },
+              { icon: Building2, label: (stats?.partnerBrands ?? 0) > 0 ? `${stats?.partnerBrands}+` : "0", sublabel: "Partner Brands" },
               { icon: Zap, label: String(stats?.activeDeals ?? 0), sublabel: "Active Deals" },
             ].map((stat, index) => (
               <motion.div
