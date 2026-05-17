@@ -141,9 +141,6 @@ export function Header() {
               isPremium ? "premium-glow" : "shadow-glow"
             )}
           />
-          {isPremium && (
-            <Crown className="h-4 w-4 text-yellow-500 -ml-1 -mt-6" />
-          )}
           <span className={cn(
             "text-xl font-bold font-sans",
             isPremium && "text-gradient-gold"
