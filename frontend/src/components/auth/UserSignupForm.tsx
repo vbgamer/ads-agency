@@ -1,9 +1,10 @@
 import * as React from "react";
-import { ArrowRight, Gift } from "lucide-react";
+import { ArrowRight, Gift, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { sanitizeInput, isValidEmail } from "@/lib/sanitize";
 
 type Props = {
   onSubmit: (e: React.FormEvent) => void;
@@ -74,6 +75,35 @@ export function UserSignupForm({
   referralCode,
   setReferralCode,
 }: Props) {
+  const [emailError, setEmailError] = React.useState("");
+  const [nameError, setNameError] = React.useState("");
+
+  // Sanitize name on change
+  const handleNameChange = (value: string) => {
+    const sanitized = sanitizeInput(value);
+    if (sanitized !== value) {
+      setNameError("Special characters and HTML tags are not allowed");
+    } else {
+      setNameError("");
+    }
+    setUserName(sanitized);
+  };
+
+  // Validate email on change
+  const handleEmailChange = (value: string) => {
+    setUserEmail(value);
+    if (value && !isValidEmail(value)) {
+      setEmailError("Please enter a valid email address");
+    } else {
+      setEmailError("");
+    }
+  };
+
+  // Sanitize text inputs
+  const handleSanitizedInput = (value: string, setter: (v: string) => void) => {
+    setter(sanitizeInput(value));
+  };
+
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {/* Full Name */}
@@ -86,9 +116,17 @@ export function UserSignupForm({
           type="text"
           placeholder="Enter your full name"
           value={userName}
-          onChange={(e) => setUserName(e.target.value)}
+          onChange={(e) => handleNameChange(e.target.value)}
           autoComplete="name"
+          maxLength={100}
+          className={nameError ? "border-destructive" : ""}
         />
+        {nameError && (
+          <p className="text-xs text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            {nameError}
+          </p>
+        )}
       </div>
 
       {/* Email Address */}
@@ -100,9 +138,17 @@ export function UserSignupForm({
           type="email"
           placeholder="you@example.com"
           value={userEmail}
-          onChange={(e) => setUserEmail(e.target.value)}
+          onChange={(e) => handleEmailChange(e.target.value)}
           autoComplete="email"
+          maxLength={254}
+          className={emailError ? "border-destructive" : ""}
         />
+        {emailError && (
+          <p className="text-xs text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            {emailError}
+          </p>
+        )}
       </div>
 
       {/* Phone Number */}
@@ -236,8 +282,9 @@ export function UserSignupForm({
             type="text"
             placeholder="Your state"
             value={state}
-            onChange={(e) => setState(e.target.value)}
+            onChange={(e) => handleSanitizedInput(e.target.value, setState)}
             autoComplete="address-level1"
+            maxLength={100}
           />
         </div>
         <div className="space-y-2">
@@ -248,8 +295,9 @@ export function UserSignupForm({
             type="text"
             placeholder="Your city"
             value={city}
-            onChange={(e) => setCity(e.target.value)}
+            onChange={(e) => handleSanitizedInput(e.target.value, setCity)}
             autoComplete="address-level2"
+            maxLength={100}
           />
         </div>
       </div>

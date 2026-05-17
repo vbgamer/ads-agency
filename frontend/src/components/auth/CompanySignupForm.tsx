@@ -1,10 +1,11 @@
 import * as React from "react";
-import { ArrowRight, Building2, Upload, Search, Check, ImageIcon } from "lucide-react";
+import { ArrowRight, Building2, Upload, Search, Check, ImageIcon, AlertCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { sanitizeInput, isValidEmail } from "@/lib/sanitize";
 
 type Category = { id: string; name: string; icon?: string };
 
@@ -62,6 +63,29 @@ export function CompanySignupForm({
 }: Props) {
   const [categoryOpen, setCategoryOpen] = React.useState(false);
   const [categorySearch, setCategorySearch] = React.useState("");
+  const [emailError, setEmailError] = React.useState("");
+  const [nameError, setNameError] = React.useState("");
+
+  // Sanitize company name on change
+  const handleCompanyNameChange = (value: string) => {
+    const sanitized = sanitizeInput(value);
+    if (sanitized !== value) {
+      setNameError("Special characters and HTML tags are not allowed");
+    } else {
+      setNameError("");
+    }
+    setCompanyName(sanitized);
+  };
+
+  // Validate email on change
+  const handleEmailChange = (value: string) => {
+    setCompanyEmail(value);
+    if (value && !isValidEmail(value)) {
+      setEmailError("Please enter a valid email address");
+    } else {
+      setEmailError("");
+    }
+  };
 
   const filteredCategories = React.useMemo(() => {
     if (!categorySearch.trim()) return categories;
@@ -159,9 +183,17 @@ export function CompanySignupForm({
           type="text"
           placeholder="Enter your company name"
           value={companyName}
-          onChange={(e) => setCompanyName(e.target.value)}
+          onChange={(e) => handleCompanyNameChange(e.target.value)}
           autoComplete="organization"
+          maxLength={100}
+          className={nameError ? "border-destructive" : ""}
         />
+        {nameError && (
+          <p className="text-xs text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            {nameError}
+          </p>
+        )}
       </div>
 
       {/* Company Category with Search */}
@@ -242,9 +274,17 @@ export function CompanySignupForm({
           type="email"
           placeholder="company@example.com"
           value={companyEmail}
-          onChange={(e) => setCompanyEmail(e.target.value)}
+          onChange={(e) => handleEmailChange(e.target.value)}
           autoComplete="email"
+          maxLength={254}
+          className={emailError ? "border-destructive" : ""}
         />
+        {emailError && (
+          <p className="text-xs text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            {emailError}
+          </p>
+        )}
       </div>
 
       {/* Password */}

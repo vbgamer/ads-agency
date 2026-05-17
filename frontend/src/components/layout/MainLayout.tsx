@@ -12,8 +12,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children, showFooter = true }: MainLayoutProps) {
   const { profile } = useAuth();
-  // PREVIEW MODE: Force premium theme for preview (remove this line to restore normal behavior)
-  const isPremium = true; // profile?.is_premium;
+  const isPremium = profile?.is_premium;
 
   return (
     <div className={cn(
