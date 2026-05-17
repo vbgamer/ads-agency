@@ -1,0 +1,23 @@
+{
+  "name": "ADSSIMSIM - Earn Cashback on Every Purchase",
+  "short_name": "ADSSIMSIM",
+  "description": "Earn cashback on every purchase with ADSSIMSIM. Shop smarter, save bigger.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7faf9",
+  "theme_color": "#0f9d6e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/Adssimsim_Logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/Adssimsim_Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

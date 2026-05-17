@@ -1,0 +1,25 @@
+project_id = "fgugwcgrhepgkareudlc"
+
+[functions.conversion-webhook]
+verify_jwt = false
+
+[functions.generate-tracking-link]
+verify_jwt = false
+
+[functions.verify-conversion]
+verify_jwt = false
+
+[functions.simulate-conversion]
+verify_jwt = false
+
+[functions.auto-verify-conversions]
+verify_jwt = false
+
+[functions.track-redirect]
+verify_jwt = false
+
+[functions.fraud-alert]
+verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
