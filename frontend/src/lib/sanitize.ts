@@ -1,17 +1,35 @@
 import DOMPurify from 'dompurify';
 
+// Pattern to detect HTML tags and dangerous content
+const HTML_TAG_PATTERN = /<[^>]*>|javascript:|data:|on\w+\s*=/gi;
+
 /**
  * Sanitize user input to prevent XSS attacks
- * Use this for all user-generated content before storing or displaying
+ * Strips all HTML tags while preserving normal text and spaces
  */
 export function sanitizeInput(input: string): string {
   if (!input) return '';
   
-  // Remove all HTML tags and scripts
-  return DOMPurify.sanitize(input, {
+  // First, check if input contains any HTML tags
+  const hasHtmlTags = HTML_TAG_PATTERN.test(input);
+  
+  // If no HTML tags, return the trimmed input as-is
+  if (!hasHtmlTags) {
+    return input.trim();
+  }
+  
+  // Use DOMPurify to strip tags, then decode HTML entities
+  const sanitized = DOMPurify.sanitize(input, {
     ALLOWED_TAGS: [], // No HTML tags allowed
     ALLOWED_ATTR: [], // No attributes allowed
-  }).trim();
+    RETURN_DOM: false,
+    RETURN_DOM_FRAGMENT: false,
+  });
+  
+  // Decode HTML entities that DOMPurify creates
+  const textArea = document.createElement('textarea');
+  textArea.innerHTML = sanitized;
+  return textArea.value.trim();
 }
 
 /**

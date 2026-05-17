@@ -80,8 +80,13 @@ export function UserSignupForm({
 
   // Sanitize name on change
   const handleNameChange = (value: string) => {
+    // Check for HTML tags or dangerous patterns before sanitization
+    const htmlPattern = /<[^>]*>|javascript:|data:|on\w+\s*=/gi;
+    const hasHtmlTags = htmlPattern.test(value);
+    
     const sanitized = sanitizeInput(value);
-    if (sanitized !== value) {
+    
+    if (hasHtmlTags) {
       setNameError("Special characters and HTML tags are not allowed");
     } else {
       setNameError("");
