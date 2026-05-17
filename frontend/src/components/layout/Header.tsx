@@ -189,11 +189,6 @@ export function Header() {
                 {isPremium && <Crown className="h-4 w-4" />}
                 <LayoutDashboard className="h-4 w-4" />
                 <span className="hidden sm:inline">Dashboard</span>
-                {isPremium && (
-                  <Badge variant="outline" className="ml-1 border-yellow-300/50 bg-yellow-100/50 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 text-[10px] px-1 py-0 hidden sm:flex">
-                    PRO
-                  </Badge>
-                )}
               </Button>
             </Link>
           ) : (
