@@ -183,7 +183,6 @@ export function Header() {
                   isPremium && "bg-gradient-premium-gold hover:opacity-90"
                 )}
               >
-                {isPremium && <Crown className="h-4 w-4" />}
                 <LayoutDashboard className="h-4 w-4" />
                 <span className="hidden sm:inline">Dashboard</span>
               </Button>
