@@ -184,7 +184,7 @@ export function HeroSection() {
             {[
               { icon: TrendingUp, label: isPremium ? "40%" : formatIndianCurrency(stats?.cashbackPaid ?? 0), sublabel: isPremium ? "Extra Cashback" : "Cashback Paid" },
               { icon: Shield, label: (stats?.partnerBrands ?? 0) > 0 ? `${stats?.partnerBrands}+` : "0", sublabel: "Partner Brands" },
-              { icon: Zap, label: (stats?.activeDeals ?? 0) > 0 ? `${stats?.activeDeals}+` : "0", sublabel: "Active Deals" },
+              { icon: Zap, label: String(stats?.activeDeals ?? 0), sublabel: "Active Deals" },
             ].map((stat, index) => (
               <motion.div
                 key={index}
