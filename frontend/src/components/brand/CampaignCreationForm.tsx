@@ -150,6 +150,18 @@ export function CampaignCreationForm({ onComplete, onCancel, campaign }: Campaig
     }
 
     const isVideo = fieldName === 'videoUrl';
+    
+    // Validate video format - only allow MP4 and WebM
+    if (isVideo) {
+      const allowedVideoTypes = ['video/mp4', 'video/webm'];
+      const fileExtension = file.name.toLowerCase().split('.').pop();
+      
+      if (!allowedVideoTypes.includes(file.type) || fileExtension === 'mov') {
+        toast.error("Only MP4 and WebM video formats are supported. MOV files are not compatible with all browsers.");
+        return;
+      }
+    }
+    
     const maxSize = isVideo ? 100 * 1024 * 1024 : 5 * 1024 * 1024;
     if (file.size > maxSize) {
       toast.error(`File too large. Max ${isVideo ? '100MB' : '5MB'}.`);
@@ -519,7 +531,7 @@ export function CampaignCreationForm({ onComplete, onCancel, campaign }: Campaig
                     <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
                       <input
                         type="file"
-                        accept="video/mp4,video/webm,video/quicktime"
+                        accept="video/mp4,video/webm"
                         onChange={handleVideoUpload}
                         className="hidden"
                         id="video-upload"
@@ -536,8 +548,7 @@ export function CampaignCreationForm({ onComplete, onCancel, campaign }: Campaig
                           <>
                             <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                             <p className="text-sm text-muted-foreground">Click to upload video</p>
-                            <p className="text-xs text-muted-foreground mt-1">MP4 or WebM recommended (max 100MB)</p>
-                            <p className="text-xs text-amber-600 mt-1">Note: MOV files may not play in all browsers</p>
+                            <p className="text-xs text-muted-foreground mt-1">MP4 or WebM only (max 100MB)</p>
                           </>
                         )}
                       </label>

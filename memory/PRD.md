@@ -111,3 +111,16 @@
 - `/app/frontend/src/components/campaign/CampaignVideoPlayer.tsx`
 - `/app/frontend/src/components/campaign/VideoAdMedia.tsx`
 - `/app/frontend/src/components/brand/CampaignCreationForm.tsx`
+
+### 2026-05-27 - MOV Format Rejection
+**Change**: Reject MOV video uploads, only accept MP4/WebM
+**Reason**: MOV format has inconsistent browser support
+
+**Implementation:**
+1. Added video format validation in `uploadToStorage` function
+2. Updated file input `accept` attribute to only allow `video/mp4,video/webm`
+3. Updated upload hint text to "MP4 or WebM only (max 100MB)"
+4. Added clear error message when MOV upload is attempted
+
+**File Modified:**
+- `/app/frontend/src/components/brand/CampaignCreationForm.tsx`
