@@ -298,7 +298,36 @@ export function CampaignVideoPlayer({
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
-  if (videoError) return null;
+  // If video fails to load, show poster image as fallback instead of nothing
+  if (videoError) {
+    const isMov = videoUrl.toLowerCase().endsWith('.mov');
+    return (
+      <div className="relative w-full h-full bg-black flex items-center justify-center">
+        <img
+          src={posterUrl}
+          alt={title}
+          className="h-full w-full object-contain"
+        />
+        <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-lg bg-black/70 text-white text-xs backdrop-blur-sm">
+          {isMov ? (
+            <span>Video format (.MOV) may not be supported by your browser. Try using MP4 format.</span>
+          ) : (
+            <span>Video unavailable</span>
+          )}
+        </div>
+        {onViewPoster && (
+          <button
+            className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs text-white backdrop-blur-sm hover:bg-black/70 transition-colors"
+            onClick={onViewPoster}
+            aria-label="View ad poster"
+          >
+            <ZoomIn className="h-3.5 w-3.5" />
+            View Poster
+          </button>
+        )}
+      </div>
+    );
+  }
 
   const isEnded = currentTime > 0 && currentTime >= duration - 0.5;
 

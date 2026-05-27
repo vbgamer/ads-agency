@@ -536,7 +536,8 @@ export function CampaignCreationForm({ onComplete, onCancel, campaign }: Campaig
                           <>
                             <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                             <p className="text-sm text-muted-foreground">Click to upload video</p>
-                            <p className="text-xs text-muted-foreground mt-1">MP4, WebM, MOV (max 100MB)</p>
+                            <p className="text-xs text-muted-foreground mt-1">MP4 or WebM recommended (max 100MB)</p>
+                            <p className="text-xs text-amber-600 mt-1">Note: MOV files may not play in all browsers</p>
                           </>
                         )}
                       </label>

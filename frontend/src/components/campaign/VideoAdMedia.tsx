@@ -19,6 +19,7 @@ export const VideoAdMedia = ({
   const [isPosterOpen, setIsPosterOpen] = useState(false);
   const [posterError, setPosterError] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [videoError, setVideoError] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const toggleVideoPlayback = useCallback(() => {
@@ -48,7 +49,7 @@ export const VideoAdMedia = ({
 
   return (
     <>
-      {videoUrl ? (
+      {videoUrl && !videoError ? (
         // Video with poster as thumbnail overlay
         <div className="space-y-3">
           <div className="relative overflow-hidden rounded-xl border border-border bg-black">
@@ -63,6 +64,7 @@ export const VideoAdMedia = ({
               onPlay={() => setIsVideoPlaying(true)}
               onPause={() => setIsVideoPlaying(false)}
               onEnded={() => setIsVideoPlaying(false)}
+              onError={() => setVideoError(true)}
             />
             {/* Overlay poster with view full button (visible before play) */}
             {!isVideoPlaying && imageUrl && (

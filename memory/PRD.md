@@ -91,3 +91,23 @@
 - Test full campaign creation flow with brand account
 - Verify conversion tracking webhook security
 - Consider adding rate limiting on frontend
+
+### 2026-05-27 - Video Display Bug Fix
+**Issue**: Uploaded videos not displaying on campaign detail page
+**Root Cause**: 
+1. CSP blocking media from Supabase storage (missing `media-src` directive)
+2. MOV format not universally supported in browsers
+3. CampaignVideoPlayer returned `null` on video error, hiding entire component
+
+**Fixes Applied:**
+1. Updated CSP in `index.html` to include `media-src 'self' https://*.supabase.co blob: data:`
+2. Added graceful fallback in `CampaignVideoPlayer.tsx` - shows poster image when video fails
+3. Added format-specific error message for MOV files recommending MP4
+4. Updated `VideoAdMedia.tsx` with video error handling
+5. Added warning in campaign creation form about MOV format compatibility
+
+**Files Modified:**
+- `/app/frontend/index.html`
+- `/app/frontend/src/components/campaign/CampaignVideoPlayer.tsx`
+- `/app/frontend/src/components/campaign/VideoAdMedia.tsx`
+- `/app/frontend/src/components/brand/CampaignCreationForm.tsx`
