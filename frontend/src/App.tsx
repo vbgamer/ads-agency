@@ -20,8 +20,11 @@ setGlobalQueryClient(queryClient);
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [isPremiumSplash] = useState(() => {
-    // Check cached premium status for instant premium splash
-    return localStorage.getItem('isPremiumUser') === 'true';
+    // Only show premium splash if user is logged in AND is premium
+    // Check for Supabase session token to verify user is signed in
+    const hasSession = localStorage.getItem('sb-wmmyxtzkswsavqqngvuj-auth-token') !== null;
+    const isPremium = localStorage.getItem('isPremiumUser') === 'true';
+    return hasSession && isPremium;
   });
 
   useEffect(() => {
@@ -33,16 +36,18 @@ const App = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Set the theme attribute on document root based on premium status
+  // Set the theme attribute on document root based on premium status (only when logged in)
   useEffect(() => {
+    const hasSession = localStorage.getItem('sb-wmmyxtzkswsavqqngvuj-auth-token') !== null;
     const isPremium = localStorage.getItem('isPremiumUser') === 'true';
-    const theme = isPremium ? 'premium' : 'free';
+    const theme = (hasSession && isPremium) ? 'premium' : 'free';
     document.documentElement.setAttribute('data-user-theme', theme);
 
     // Listen for changes in premium status
     const handleStorageChange = () => {
+      const sessionExists = localStorage.getItem('sb-wmmyxtzkswsavqqngvuj-auth-token') !== null;
       const updated = localStorage.getItem('isPremiumUser') === 'true';
-      const newTheme = updated ? 'premium' : 'free';
+      const newTheme = (sessionExists && updated) ? 'premium' : 'free';
       document.documentElement.setAttribute('data-user-theme', newTheme);
     };
 
