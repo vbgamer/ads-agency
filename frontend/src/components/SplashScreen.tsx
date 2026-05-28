@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Crown } from "lucide-react";
+import { Crown, Sparkles, Star } from "lucide-react";
 
 
 interface SplashScreenProps {
@@ -23,77 +23,143 @@ export function SplashScreen({ isVisible, isPremium = false }: SplashScreenProps
         >
           {/* Animated background elements */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <motion.div
-              animate={{ 
-                scale: [1, 1.2, 1],
-                opacity: [0.1, 0.2, 0.1]
-              }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className={`absolute top-1/4 left-1/4 w-64 h-64 rounded-full blur-3xl ${
-                isPremium ? 'bg-yellow-400/20' : 'bg-red-500/20'
-              }`}
-            />
-            <motion.div
-              animate={{ 
-                scale: [1.2, 1, 1.2],
-                opacity: [0.15, 0.25, 0.15]
-              }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              className={`absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-3xl ${
-                isPremium ? 'bg-amber-500/15' : 'bg-fuchsia-500/15'
-              }`}
-            />
-            
-            {/* Third accent orb for non-premium - adds depth */}
-            {!isPremium && (
-              <motion.div
-                animate={{ 
-                  scale: [1, 1.15, 1],
-                  opacity: [0.08, 0.15, 0.08]
-                }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-                className="absolute top-1/2 right-1/3 w-72 h-72 rounded-full blur-3xl bg-purple-500/10"
-              />
+            {isPremium ? (
+              <>
+                {/* Premium: Luxurious golden orbs */}
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.3, 1],
+                    opacity: [0.2, 0.4, 0.2],
+                    rotate: [0, 180, 360]
+                  }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full blur-3xl bg-gradient-to-r from-yellow-400/30 via-amber-500/20 to-orange-400/30"
+                />
+                <motion.div
+                  animate={{ 
+                    scale: [1.2, 1, 1.2],
+                    opacity: [0.25, 0.4, 0.25],
+                    rotate: [360, 180, 0]
+                  }}
+                  transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                  className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-3xl bg-gradient-to-r from-emerald-400/20 via-teal-500/15 to-cyan-400/20"
+                />
+                {/* Premium shimmer line */}
+                <motion.div
+                  animate={{ 
+                    x: ["-100%", "200%"],
+                    opacity: [0, 1, 0]
+                  }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", repeatDelay: 1 }}
+                  className="absolute top-1/2 left-0 w-1/2 h-px bg-gradient-to-r from-transparent via-yellow-400/60 to-transparent"
+                />
+              </>
+            ) : (
+              <>
+                {/* Normal: Standard colorful orbs */}
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    opacity: [0.1, 0.2, 0.1]
+                  }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full blur-3xl bg-red-500/20"
+                />
+                <motion.div
+                  animate={{ 
+                    scale: [1.2, 1, 1.2],
+                    opacity: [0.15, 0.25, 0.15]
+                  }}
+                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                  className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-3xl bg-fuchsia-500/15"
+                />
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.15, 1],
+                    opacity: [0.08, 0.15, 0.08]
+                  }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+                  className="absolute top-1/2 right-1/3 w-72 h-72 rounded-full blur-3xl bg-purple-500/10"
+                />
+              </>
             )}
             
-            {/* Premium floating sparkles */}
+            {/* Premium floating sparkles - more elaborate */}
             {isPremium && (
               <>
-                {[...Array(6)].map((_, i) => (
+                {[...Array(12)].map((_, i) => (
                   <motion.div
                     key={i}
-                    className="absolute text-yellow-400 text-lg"
+                    className="absolute text-yellow-400"
                     style={{
-                      top: `${20 + (i * 10) % 60}%`,
-                      left: `${10 + (i * 15) % 80}%`,
+                      top: `${10 + (i * 7) % 80}%`,
+                      left: `${5 + (i * 8) % 90}%`,
+                      fontSize: `${12 + (i % 3) * 6}px`,
                     }}
                     animate={{
-                      y: [0, -20, 0],
-                      opacity: [0.3, 1, 0.3],
-                      scale: [0.8, 1.2, 0.8],
+                      y: [0, -30, 0],
+                      x: [0, (i % 2 === 0 ? 10 : -10), 0],
+                      opacity: [0.2, 1, 0.2],
+                      scale: [0.6, 1.3, 0.6],
+                      rotate: [0, 180, 360],
                     }}
                     transition={{
-                      duration: 2 + (i * 0.3),
+                      duration: 2.5 + (i * 0.2),
                       repeat: Infinity,
-                      delay: i * 0.3,
+                      delay: i * 0.15,
+                      ease: "easeInOut",
                     }}
                   >
                     ✦
+                  </motion.div>
+                ))}
+                {/* Additional star particles for premium */}
+                {[...Array(4)].map((_, i) => (
+                  <motion.div
+                    key={`star-${i}`}
+                    className="absolute text-amber-300/60"
+                    style={{
+                      top: `${20 + (i * 20) % 60}%`,
+                      left: `${15 + (i * 25) % 70}%`,
+                    }}
+                    animate={{
+                      scale: [0.5, 1.5, 0.5],
+                      opacity: [0.3, 0.8, 0.3],
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      delay: i * 0.5,
+                    }}
+                  >
+                    <Star className="h-4 w-4 fill-current" />
                   </motion.div>
                 ))}
               </>
             )}
           </div>
 
-          {/* Premium Crown */}
+          {/* Premium Crown with enhanced animation */}
           {isPremium && (
             <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.5 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.5, ease: "easeOut" }}
-              className="mb-2"
+              initial={{ opacity: 0, y: -40, scale: 0.3, rotate: -20 }}
+              animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+              transition={{ delay: 0.1, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
+              className="mb-3"
             >
-              <Crown className="h-8 w-8 text-yellow-500 drop-shadow-lg" />
+              <motion.div
+                animate={{ 
+                  y: [0, -5, 0],
+                  filter: [
+                    "drop-shadow(0 0 10px rgba(234, 179, 8, 0.5))",
+                    "drop-shadow(0 0 20px rgba(234, 179, 8, 0.8))",
+                    "drop-shadow(0 0 10px rgba(234, 179, 8, 0.5))"
+                  ]
+                }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Crown className="h-10 w-10 text-yellow-500" />
+              </motion.div>
             </motion.div>
           )}
 
@@ -178,36 +244,62 @@ export function SplashScreen({ isVisible, isPremium = false }: SplashScreenProps
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1, duration: 0.4 }}
-            className="mt-3 text-muted-foreground text-lg"
+            className={`mt-3 text-lg ${isPremium ? 'text-amber-100' : 'text-muted-foreground'}`}
           >
             {isPremium ? 'Welcome back, Premium Member' : 'Earn cashback on every purchase'}
           </motion.p>
           
-          {/* Loading dots */}
+          {/* Loading indicator - Premium vs Normal */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2 }}
-            className="mt-10 flex gap-2"
+            className="mt-10"
           >
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                animate={{ 
-                  scale: [1, 1.3, 1],
-                  opacity: [0.4, 1, 0.4]
-                }}
-                transition={{ 
-                  repeat: Infinity, 
-                  duration: 1.2, 
-                  delay: i * 0.15,
-                  ease: "easeInOut"
-                }}
-                className={`h-2.5 w-2.5 rounded-full ${
-                  isPremium ? 'bg-gradient-premium-gold' : 'bg-gradient-primary'
-                }`}
-              />
-            ))}
+            {isPremium ? (
+              // Premium: Elegant golden ring loader
+              <div className="relative">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="w-12 h-12 rounded-full border-2 border-yellow-500/20"
+                  style={{
+                    borderTopColor: 'rgb(234, 179, 8)',
+                    borderRightColor: 'rgb(245, 158, 11)',
+                  }}
+                />
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    opacity: [0.5, 1, 0.5]
+                  }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute inset-0 flex items-center justify-center"
+                >
+                  <Sparkles className="h-5 w-5 text-yellow-500" />
+                </motion.div>
+              </div>
+            ) : (
+              // Normal: Simple bouncing dots
+              <div className="flex gap-2">
+                {[0, 1, 2].map((i) => (
+                  <motion.div
+                    key={i}
+                    animate={{ 
+                      scale: [1, 1.3, 1],
+                      opacity: [0.4, 1, 0.4]
+                    }}
+                    transition={{ 
+                      repeat: Infinity, 
+                      duration: 1.2, 
+                      delay: i * 0.15,
+                      ease: "easeInOut"
+                    }}
+                    className="h-2.5 w-2.5 rounded-full bg-gradient-primary"
+                  />
+                ))}
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}
