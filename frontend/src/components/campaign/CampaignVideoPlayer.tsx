@@ -300,7 +300,6 @@ export function CampaignVideoPlayer({
 
   // If video fails to load, show poster image as fallback instead of nothing
   if (videoError) {
-    const isMov = videoUrl.toLowerCase().endsWith('.mov');
     return (
       <div className="relative w-full h-full bg-black flex items-center justify-center">
         <img
@@ -309,11 +308,7 @@ export function CampaignVideoPlayer({
           className="h-full w-full object-contain"
         />
         <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-lg bg-black/70 text-white text-xs backdrop-blur-sm">
-          {isMov ? (
-            <span>Video format (.MOV) may not be supported by your browser. Try using MP4 format.</span>
-          ) : (
-            <span>Video unavailable</span>
-          )}
+          <span>Video playback unavailable. This may be due to format compatibility or network issues.</span>
         </div>
         {onViewPoster && (
           <button

@@ -90,6 +90,28 @@ export const VideoAdMedia = ({
             <span>{isVideoPlaying ? "Pause ad video" : "Play ad video"}</span>
           </button>
         </div>
+      ) : videoUrl && videoError ? (
+        // Video failed to load - show fallback with poster
+        <div className="space-y-3">
+          <div className="relative overflow-hidden rounded-xl border border-border bg-black">
+            <img
+              src={posterUrl}
+              alt={`${companyName} ad`}
+              className="aspect-video w-full object-contain"
+            />
+            <div className="absolute bottom-3 left-3 right-3 px-3 py-2 rounded-lg bg-black/70 text-white text-xs backdrop-blur-sm">
+              Video playback unavailable. This may be due to format compatibility or network issues.
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsPosterOpen(true)}
+              className="absolute top-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 text-xs text-white backdrop-blur-sm hover:bg-black/70 transition-colors"
+            >
+              <ImageIcon className="h-3.5 w-3.5" />
+              View poster
+            </button>
+          </div>
+        </div>
       ) : (
         // Poster only (when no video)
         <button
