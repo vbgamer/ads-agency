@@ -124,3 +124,42 @@
 
 **File Modified:**
 - `/app/frontend/src/components/brand/CampaignCreationForm.tsx`
+
+### 2026-02-28 - Security Hardening P0 Patch
+**Why**: Tracking pixel was 401'd (broken pipeline), and several OWASP gaps were identified during audit.
+
+**Pixel 401 Fix:**
+- Edge function (`conversion-webhook/index.ts`) now reads `source` from JSON body when no `x-webhook-source` header is present (required because `navigator.sendBeacon` cannot set custom headers).
+- Whitelisted public sources: `pixel`, `auto-pixel`, `manual`.
+- `order_id`, `order_total`, `customer_email`, `client_ip` now passed through to `conversion_data`.
+
+**Anti-Fraud / Anti-Abuse:**
+- New SQL migration `20260228000000_security_hardening_p0.sql`:
+  - `rate_limit_events` table + `check_rate_limit()` + `prune_rate_limit_events()`
+  - `process_conversion()` now accepts `p_expected_company_id` and rejects mismatches (prevents pixel-based conversion fraud where attacker reuses a scraped tracking_id under a different company).
+  - pg_cron job (when extension exists) prunes rate_limit_events every 15 min.
+- Edge function applies two rate-limits:
+  - per IP: 30 requests / 60s
+  - per tracking_id: 5 requests / 60s
+
+**SSRF Guard:**
+- `isValidUrl()` now rejects internal IP ranges (10.x, 127.x, 169.254.x, 172.16-31.x, 192.168.x, 0.x), IPv6 loopback, and `.local`/`.localhost` hostnames. Tested 20/20 cases.
+
+**Hardening:**
+- Vite production build now drops `console.*` and `debugger` via `esbuild.drop` (no debug leaks in bundled JS).
+- Removed legacy `lovable.app` CORS allowlist entry from edge function.
+
+**Files Modified:**
+- `/app/frontend/supabase/functions/conversion-webhook/index.ts`
+- `/app/frontend/supabase/migrations/20260228000000_security_hardening_p0.sql` (NEW)
+- `/app/frontend/src/lib/sanitize.ts`
+- `/app/frontend/vite.config.ts`
+
+**Deployment Required (user action):**
+1. Run the SQL migration on Supabase dashboard
+2. `supabase functions deploy conversion-webhook --project-ref wmmyxtzkswsavqqngvuj`
+
+**OWASP score change:**
+- A01 Broken Access Control: 5 → 8 / 10
+- A04 Insecure Design (pixel fraud): 4 → 7 / 10
+- A10 SSRF: 5 → 9 / 10

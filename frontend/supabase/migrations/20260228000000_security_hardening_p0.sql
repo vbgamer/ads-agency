@@ -215,3 +215,28 @@ GRANT EXECUTE ON FUNCTION public.check_rate_limit(TEXT, TEXT, INTEGER, INTEGER)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.prune_rate_limit_events()
   TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- 4. AUTO-PRUNE — schedule rate_limit_events cleanup every 15 minutes
+--    Requires the pg_cron extension. If pg_cron is unavailable, this block
+--    is a no-op (wrapped in DO so migration won't fail).
+-- ---------------------------------------------------------------------------
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_extension WHERE extname = 'pg_cron'
+  ) THEN
+    PERFORM cron.unschedule(jobid)
+      FROM cron.job
+      WHERE jobname = 'adssimsim_prune_rate_limit';
+
+    PERFORM cron.schedule(
+      'adssimsim_prune_rate_limit',
+      '*/15 * * * *',
+      $cron$ SELECT public.prune_rate_limit_events(); $cron$
+    );
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  -- pg_cron not installed / no permission — ignore silently.
+  RAISE NOTICE 'pg_cron not available, skipping auto-prune schedule';
+END $$;

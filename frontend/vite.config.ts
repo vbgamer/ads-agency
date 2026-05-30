@@ -10,6 +10,9 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: true,
   },
   plugins: [react()],
+  // Strip console.* and debugger from production bundles to avoid leaking
+  // tracking IDs, payloads and debug info into shipped client code.
+  esbuild: mode === "production" ? { drop: ["console", "debugger"] } : undefined,
   resolve: {
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react-router-dom"],
     alias: {
