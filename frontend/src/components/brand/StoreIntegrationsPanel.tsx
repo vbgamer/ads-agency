@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { 
   Plus, Settings, Trash2, RefreshCw, Copy, Check, 
   ExternalLink, ShoppingBag, ShoppingCart, Plug,
@@ -57,12 +58,45 @@ const STATUS_CONFIG = {
 };
 
 export function StoreIntegrationsPanel() {
-  const { integrations, isLoading, createIntegration, updateIntegration, deleteIntegration, regenerateWebhookSecret } = useStoreIntegrations();
+  const { 
+    integrations, 
+    isLoading, 
+    createIntegration, 
+    updateIntegration, 
+    deleteIntegration, 
+    regenerateWebhookSecret,
+    initiateShopifyOAuth,
+    connectWooCommerce,
+    disconnectIntegration
+  } = useStoreIntegrations();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<IntegrationPlatform | null>(null);
   const [selectedIntegration, setSelectedIntegration] = useState<StoreIntegration | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [integrationToDelete, setIntegrationToDelete] = useState<string | null>(null);
+
+  // Check for OAuth callback success/error
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get('success');
+    const error = params.get('error');
+    
+    if (success === 'shopify_connected') {
+      toast.success('Shopify store connected successfully!');
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (error) {
+      const errorMessages: Record<string, string> = {
+        'missing_params': 'OAuth callback missing required parameters',
+        'invalid_state': 'Invalid OAuth state. Please try again.',
+        'state_expired': 'OAuth session expired. Please try again.',
+        'token_exchange_failed': 'Failed to connect to Shopify. Please try again.',
+        'save_failed': 'Failed to save integration. Please try again.',
+      };
+      toast.error(errorMessages[error] || 'Connection failed. Please try again.');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   const availablePlatforms = (['shopify', 'woocommerce', 'custom_api'] as IntegrationPlatform[]).filter(
     platform => !integrations?.some(i => i.platform === platform)
@@ -166,6 +200,15 @@ export function StoreIntegrationsPanel() {
               }}
               onCancel={() => setSelectedPlatform(null)}
               isLoading={createIntegration.isPending}
+              onShopifyOAuth={async (shopUrl) => {
+                await initiateShopifyOAuth.mutateAsync(shopUrl);
+              }}
+              onWooCommerceConnect={async (params) => {
+                await connectWooCommerce.mutateAsync(params);
+                setShowAddDialog(false);
+                setSelectedPlatform(null);
+              }}
+              isOAuthLoading={initiateShopifyOAuth.isPending || connectWooCommerce.isPending}
             />
           )}
         </DialogContent>
@@ -318,16 +361,25 @@ function AddIntegrationForm({
   platform,
   onSubmit,
   onCancel,
-  isLoading
+  isLoading,
+  onShopifyOAuth,
+  onWooCommerceConnect,
+  isOAuthLoading,
 }: {
   platform: IntegrationPlatform;
   onSubmit: (data: { store_url?: string; api_endpoint?: string; tracked_events?: OrderEventType[] }) => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
+  onShopifyOAuth?: (shopUrl: string) => Promise<void>;
+  onWooCommerceConnect?: (params: { store_url: string; consumer_key: string; consumer_secret: string }) => Promise<void>;
+  isOAuthLoading?: boolean;
 }) {
   const [storeUrl, setStoreUrl] = useState('');
   const [apiEndpoint, setApiEndpoint] = useState('');
+  const [consumerKey, setConsumerKey] = useState('');
+  const [consumerSecret, setConsumerSecret] = useState('');
   const [trackedEvents, setTrackedEvents] = useState<OrderEventType[]>(['order_paid']);
+  const [showCredentials, setShowCredentials] = useState(false);
 
   const toggleEvent = (event: OrderEventType) => {
     setTrackedEvents(prev => 
@@ -337,86 +389,169 @@ function AddIntegrationForm({
     );
   };
 
-  const handleSubmit = () => {
-    onSubmit({
-      store_url: platform !== 'custom_api' ? storeUrl : undefined,
-      api_endpoint: platform === 'custom_api' ? apiEndpoint : undefined,
-      tracked_events: trackedEvents
-    });
+  const handleSubmit = async () => {
+    if (platform === 'shopify' && onShopifyOAuth) {
+      await onShopifyOAuth(storeUrl);
+    } else if (platform === 'woocommerce' && onWooCommerceConnect) {
+      await onWooCommerceConnect({
+        store_url: storeUrl,
+        consumer_key: consumerKey,
+        consumer_secret: consumerSecret,
+      });
+    } else {
+      await onSubmit({
+        store_url: platform !== 'custom_api' ? storeUrl : undefined,
+        api_endpoint: platform === 'custom_api' ? apiEndpoint : undefined,
+        tracked_events: trackedEvents
+      });
+    }
+  };
+
+  const isFormValid = () => {
+    if (platform === 'shopify') return storeUrl.trim().length > 0;
+    if (platform === 'woocommerce') return storeUrl.trim().length > 0 && consumerKey.trim().length > 0 && consumerSecret.trim().length > 0;
+    if (platform === 'custom_api') return trackedEvents.length > 0;
+    return false;
   };
 
   return (
     <div className="space-y-6 py-4">
       {platform === 'shopify' && (
-        <div className="space-y-2">
-          <Label>Shopify Store URL</Label>
-          <Input
-            placeholder="your-store.myshopify.com"
-            value={storeUrl}
-            onChange={(e) => setStoreUrl(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            You'll be redirected to Shopify to authorize the connection
-          </p>
+        <div className="space-y-4">
+          <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900">
+            <h4 className="font-medium text-green-800 dark:text-green-300 mb-2">Shopify OAuth Connection</h4>
+            <p className="text-sm text-green-700 dark:text-green-400">
+              You'll be securely redirected to Shopify to authorize the connection. We'll only request access to read your orders.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>Shopify Store URL</Label>
+            <Input
+              placeholder="your-store.myshopify.com"
+              value={storeUrl}
+              onChange={(e) => setStoreUrl(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Enter your store name (e.g., "mystore" or "mystore.myshopify.com")
+            </p>
+          </div>
         </div>
       )}
 
       {platform === 'woocommerce' && (
-        <div className="space-y-2">
-          <Label>WooCommerce Store URL</Label>
-          <Input
-            placeholder="https://your-store.com"
-            value={storeUrl}
-            onChange={(e) => setStoreUrl(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            We'll guide you through the WooCommerce REST API setup
-          </p>
+        <div className="space-y-4">
+          <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-900">
+            <h4 className="font-medium text-purple-800 dark:text-purple-300 mb-2">WooCommerce API Keys</h4>
+            <p className="text-sm text-purple-700 dark:text-purple-400 mb-2">
+              Generate API keys from your WooCommerce dashboard:
+            </p>
+            <ol className="text-sm text-purple-700 dark:text-purple-400 list-decimal list-inside space-y-1">
+              <li>Go to WooCommerce → Settings → Advanced → REST API</li>
+              <li>Click "Add key" and set permissions to "Read"</li>
+              <li>Copy the Consumer Key and Consumer Secret</li>
+            </ol>
+          </div>
+          <div className="space-y-2">
+            <Label>WooCommerce Store URL</Label>
+            <Input
+              placeholder="https://your-store.com"
+              value={storeUrl}
+              onChange={(e) => setStoreUrl(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Consumer Key</Label>
+            <Input
+              placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              value={consumerKey}
+              onChange={(e) => setConsumerKey(e.target.value)}
+              type={showCredentials ? "text" : "password"}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Consumer Secret</Label>
+            <Input
+              placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+              value={consumerSecret}
+              onChange={(e) => setConsumerSecret(e.target.value)}
+              type={showCredentials ? "text" : "password"}
+            />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="show-credentials"
+              checked={showCredentials}
+              onCheckedChange={(checked) => setShowCredentials(!!checked)}
+            />
+            <Label htmlFor="show-credentials" className="text-sm cursor-pointer">
+              Show credentials
+            </Label>
+          </div>
         </div>
       )}
 
       {platform === 'custom_api' && (
-        <div className="space-y-2">
-          <Label>Your API Endpoint (Optional)</Label>
-          <Input
-            placeholder="https://your-api.com/webhook"
-            value={apiEndpoint}
-            onChange={(e) => setApiEndpoint(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            You'll receive a webhook URL to integrate with your system
-          </p>
+        <div className="space-y-4">
+          <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900">
+            <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-2">Custom API Integration</h4>
+            <p className="text-sm text-blue-700 dark:text-blue-400">
+              After setup, you'll receive a webhook URL and secret to integrate with your platform.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label>Your API Endpoint (Optional)</Label>
+            <Input
+              placeholder="https://your-api.com/webhook"
+              value={apiEndpoint}
+              onChange={(e) => setApiEndpoint(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Optional: We can send notifications to your endpoint
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Event Selection */}
-      <div className="space-y-3">
-        <Label>Events to Track</Label>
-        <div className="grid gap-2">
-          {(Object.keys(EVENT_TYPE_INFO) as OrderEventType[]).map((event) => (
-            <div key={event} className="flex items-center space-x-3">
-              <Checkbox
-                id={event}
-                checked={trackedEvents.includes(event)}
-                onCheckedChange={() => toggleEvent(event)}
-              />
-              <Label htmlFor={event} className="flex-1 cursor-pointer">
-                <span className="font-medium">{EVENT_TYPE_INFO[event].name}</span>
-                <span className="text-xs text-muted-foreground block">
-                  {EVENT_TYPE_INFO[event].description}
-                </span>
-              </Label>
-            </div>
-          ))}
+      {/* Event Selection - Only for WooCommerce and Custom API */}
+      {platform !== 'shopify' && (
+        <div className="space-y-3">
+          <Label>Events to Track</Label>
+          <div className="grid gap-2">
+            {(Object.keys(EVENT_TYPE_INFO) as OrderEventType[]).map((event) => (
+              <div key={event} className="flex items-center space-x-3">
+                <Checkbox
+                  id={event}
+                  checked={trackedEvents.includes(event)}
+                  onCheckedChange={() => toggleEvent(event)}
+                />
+                <Label htmlFor={event} className="flex-1 cursor-pointer">
+                  <span className="font-medium">{EVENT_TYPE_INFO[event].name}</span>
+                  <span className="text-xs text-muted-foreground block">
+                    {EVENT_TYPE_INFO[event].description}
+                  </span>
+                </Label>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>
           Back
         </Button>
-        <Button onClick={handleSubmit} disabled={isLoading || trackedEvents.length === 0}>
-          {isLoading ? 'Connecting...' : 'Connect'}
+        <Button 
+          onClick={handleSubmit} 
+          disabled={isLoading || isOAuthLoading || !isFormValid()}
+        >
+          {isLoading || isOAuthLoading ? (
+            <>
+              <span className="animate-spin mr-2">⏳</span>
+              {platform === 'shopify' ? 'Redirecting...' : 'Connecting...'}
+            </>
+          ) : (
+            platform === 'shopify' ? 'Connect with Shopify' : 'Connect'
+          )}
         </Button>
       </DialogFooter>
     </div>

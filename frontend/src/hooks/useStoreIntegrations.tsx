@@ -43,21 +43,24 @@ export interface IntegrationEvent {
 }
 
 // Platform display info
-export const PLATFORM_INFO: Record<IntegrationPlatform, { name: string; icon: string; description: string }> = {
+export const PLATFORM_INFO: Record<IntegrationPlatform, { name: string; icon: string; description: string; requiresOAuth: boolean }> = {
   shopify: {
     name: 'Shopify',
     icon: '🛍️',
-    description: 'Connect your Shopify store to automatically track orders and verify conversions.'
+    description: 'Connect your Shopify store to automatically track orders and verify conversions.',
+    requiresOAuth: true
   },
   woocommerce: {
     name: 'WooCommerce',
     icon: '🛒',
-    description: 'Integrate with your WooCommerce store for seamless order tracking.'
+    description: 'Integrate with your WooCommerce store for seamless order tracking.',
+    requiresOAuth: false // Uses API keys
   },
   custom_api: {
     name: 'Custom API',
     icon: '🔌',
-    description: 'Connect any platform using our REST API webhooks.'
+    description: 'Connect any platform using our REST API webhooks.',
+    requiresOAuth: false
   }
 };
 
@@ -210,6 +213,99 @@ export function useStoreIntegrations() {
     }
   });
 
+  // Initiate Shopify OAuth
+  const initiateShopifyOAuth = useMutation({
+    mutationFn: async (shopUrl: string) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/shopify-oauth-start`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ shop_url: shopUrl }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to initiate OAuth');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Redirect to Shopify OAuth page
+      window.location.href = data.auth_url;
+    },
+    onError: (error: Error) => {
+      toast.error(`Shopify connection failed: ${error.message}`);
+    }
+  });
+
+  // Connect WooCommerce with API keys
+  const connectWooCommerce = useMutation({
+    mutationFn: async (params: { store_url: string; consumer_key: string; consumer_secret: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/woocommerce-connect`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify(params),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to connect WooCommerce');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['store-integrations'] });
+      toast.success('WooCommerce connected successfully!');
+    },
+    onError: (error: Error) => {
+      toast.error(`WooCommerce connection failed: ${error.message}`);
+    }
+  });
+
+  // Disconnect integration (revoke access)
+  const disconnectIntegration = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('store_integrations')
+        .update({
+          status: 'disconnected',
+          access_token: null,
+          refresh_token: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('company_id', user?.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['store-integrations'] });
+      toast.success('Integration disconnected');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to disconnect: ${error.message}`);
+    }
+  });
+
   return {
     integrations,
     isLoading,
@@ -217,7 +313,10 @@ export function useStoreIntegrations() {
     createIntegration,
     updateIntegration,
     deleteIntegration,
-    regenerateWebhookSecret
+    regenerateWebhookSecret,
+    initiateShopifyOAuth,
+    connectWooCommerce,
+    disconnectIntegration
   };
 }
 
