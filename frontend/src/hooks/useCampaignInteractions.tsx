@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { storeTrackingData, getStoredTrackingId } from '@/lib/trackingPersistence';
 
 type ReactionType = 'impressed' | 'relatable' | 'decent' | 'boring';
 
@@ -236,6 +237,9 @@ export const useGrabDeal = (campaignId: string) => {
         user_id: user.id,
         event_type: 'click',
       });
+
+      // Store tracking data for persistence (30-day cookie + localStorage)
+      storeTrackingData(data.tracking_id, campaignId, 'campaign_click');
 
       return {
         success: true, 

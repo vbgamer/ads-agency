@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { 
   Plus, Settings, Trash2, RefreshCw, Copy, Check, 
   ExternalLink, ShoppingBag, ShoppingCart, Plug,
-  AlertCircle, CheckCircle, Clock, XCircle
+  AlertCircle, CheckCircle, Clock, XCircle, Code
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +42,8 @@ import {
   type OrderEventType,
   type StoreIntegration
 } from '@/hooks/useStoreIntegrations';
+import { PixelGenerator } from './PixelGenerator';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 const PLATFORM_ICONS: Record<IntegrationPlatform, React.ReactNode> = {
@@ -58,6 +60,7 @@ const STATUS_CONFIG = {
 };
 
 export function StoreIntegrationsPanel() {
+  const { user } = useAuth();
   const { 
     integrations, 
     isLoading, 
@@ -74,6 +77,7 @@ export function StoreIntegrationsPanel() {
   const [selectedIntegration, setSelectedIntegration] = useState<StoreIntegration | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [integrationToDelete, setIntegrationToDelete] = useState<string | null>(null);
+  const [activeMainTab, setActiveMainTab] = useState<'integrations' | 'pixel'>('integrations');
 
   // Check for OAuth callback success/error
   useEffect(() => {
@@ -120,44 +124,73 @@ export function StoreIntegrationsPanel() {
             Connect your e-commerce platforms for automatic order tracking and conversion verification
           </p>
         </div>
-        {availablePlatforms.length > 0 && (
-          <Button onClick={() => setShowAddDialog(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Integration
-          </Button>
-        )}
       </div>
 
-      {/* Integrations List */}
-      {integrations && integrations.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {integrations.map((integration) => (
-            <IntegrationCard
-              key={integration.id}
-              integration={integration}
-              onSettings={() => setSelectedIntegration(integration)}
-              onDelete={() => {
-                setIntegrationToDelete(integration.id);
-                setShowDeleteDialog(true);
-              }}
-            />
-          ))}
-        </div>
-      ) : (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Plug className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Integrations Yet</h3>
-            <p className="text-muted-foreground text-center mb-4 max-w-md">
-              Connect your e-commerce store to automatically track orders and verify conversions without sharing callback URLs.
-            </p>
-            <Button onClick={() => setShowAddDialog(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add Your First Integration
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {/* Main Tabs: Integrations vs Pixel */}
+      <Tabs value={activeMainTab} onValueChange={(v) => setActiveMainTab(v as 'integrations' | 'pixel')}>
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="integrations" className="gap-2">
+            <Plug className="h-4 w-4" />
+            Platform Integrations
+          </TabsTrigger>
+          <TabsTrigger value="pixel" className="gap-2">
+            <Code className="h-4 w-4" />
+            Tracking Pixel
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="integrations" className="mt-6">
+          <div className="space-y-6">
+            {/* Add Integration Button */}
+            {availablePlatforms.length > 0 && (
+              <div className="flex justify-end">
+                <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Integration
+                </Button>
+              </div>
+            )}
+
+            {/* Integrations List */}
+            {integrations && integrations.length > 0 ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {integrations.map((integration) => (
+                  <IntegrationCard
+                    key={integration.id}
+                    integration={integration}
+                    onSettings={() => setSelectedIntegration(integration)}
+                    onDelete={() => {
+                      setIntegrationToDelete(integration.id);
+                      setShowDeleteDialog(true);
+                    }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Plug className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No Integrations Yet</h3>
+                  <p className="text-muted-foreground text-center mb-4 max-w-md">
+                    Connect your e-commerce store to automatically track orders and verify conversions without sharing callback URLs.
+                  </p>
+                  <Button onClick={() => setShowAddDialog(true)} className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add Your First Integration
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="pixel" className="mt-6">
+          <PixelGenerator 
+            companyId={user?.id || ''} 
+            webhookSecret={integrations?.[0]?.webhook_secret || undefined}
+          />
+        </TabsContent>
+      </Tabs>
 
       {/* Add Integration Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>

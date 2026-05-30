@@ -11,6 +11,7 @@ import { SplashScreen } from "@/components/SplashScreen";
 import { PremiumCacheUpdater } from "@/components/PremiumCacheUpdater";
 import { AnimatedRoutes } from "@/components/layout/AnimatedRoutes";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { initializeTracking } from "@/lib/trackingPersistence";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,12 @@ const App = () => {
     }, 2200);
 
     return () => clearTimeout(timer);
+  }, []);
+
+  // Initialize tracking persistence on app load
+  // This captures tracking IDs from campaign links and stores them for 30 days
+  useEffect(() => {
+    initializeTracking();
   }, []);
 
   // Set the theme attribute on document root based on premium status (only when logged in)
