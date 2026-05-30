@@ -65,13 +65,35 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const url = new URL(req.url)
-    const source = req.headers.get("x-webhook-source") || "unknown"
+    const headerSource = req.headers.get("x-webhook-source")
     const signature = req.headers.get("x-webhook-signature") || ""
     const campaignIdFromUrl = url.searchParams.get("campaign_id")
-    
+
     const rawBody = await req.text()
 
-    // Verify webhook signature for known sources
+    // Parse body FIRST so we can fall back to body.source
+    // (navigator.sendBeacon cannot set custom headers, so JS pixels
+    // identify themselves via a "source" field in the body)
+    let rawPayload: Record<string, unknown>
+    try {
+      rawPayload = JSON.parse(rawBody)
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON payload" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      )
+    }
+
+    // Resolve source: header takes priority, body.source is the fallback
+    const source = (headerSource || (rawPayload.source as string) || "unknown").toLowerCase()
+
+    // Sources allowed without HMAC signature.
+    // - "pixel" / "auto-pixel": runs in the browser, cannot keep a secret
+    // - "manual": admin-initiated test
+    // These rely on tracking_id existence + RPC-level dedup & fraud checks.
+    const PUBLIC_SOURCES = new Set(["pixel", "auto-pixel", "manual"])
+
+    // Verify webhook signature for known affiliate sources
     const secret = getWebhookSecret(source)
     if (secret) {
       const valid = await verifySignature(rawBody, signature, secret)
@@ -90,30 +112,20 @@ const handler = async (req: Request): Promise<Response> => {
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         )
       }
-    } else if (source === "unknown") {
-      // Reject requests with no identified source
+    } else if (!PUBLIC_SOURCES.has(source)) {
+      // Reject requests with no identified or whitelisted source
       await supabase.from("webhook_logs").insert({
         source,
         endpoint: "/conversion-webhook",
-        payload: {},
+        payload: rawPayload,
         headers: { source },
         signature_valid: false,
         processed: false,
-        error_message: "Missing x-webhook-source header",
+        error_message: `Unknown source "${source}" - must be a registered affiliate source or one of: ${Array.from(PUBLIC_SOURCES).join(", ")}`,
       })
       return new Response(
-        JSON.stringify({ error: "Missing x-webhook-source header" }),
+        JSON.stringify({ error: "Unknown or missing webhook source" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      )
-    }
-    
-    let rawPayload: Record<string, unknown>
-    try {
-      rawPayload = JSON.parse(rawBody)
-    } catch {
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON payload" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       )
     }
 
@@ -143,8 +155,11 @@ const handler = async (req: Request): Promise<Response> => {
       p_conversion_type: eventType,
       p_conversion_data: {
         source,
-        event_value: rawPayload.event_value,
-        event_currency: rawPayload.event_currency || "INR",
+        // Support both affiliate-style (event_value) and pixel-style (order_total) payloads
+        event_value: rawPayload.event_value ?? rawPayload.order_total,
+        event_currency: rawPayload.event_currency || rawPayload.currency || "INR",
+        order_id: rawPayload.order_id,
+        customer_email: rawPayload.customer_email,
         timestamp: new Date().toISOString(),
         campaign_id: campaignId,
       },
