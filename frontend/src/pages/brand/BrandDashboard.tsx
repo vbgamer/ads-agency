@@ -49,6 +49,7 @@ import {
   Check,
   Link as LinkIcon,
   HelpCircle,
+  Plug,
 } from "lucide-react";
 import { getWebhookCallbackUrl } from "@/lib/campaignValidation";
 import { useNavigate, Link } from "react-router-dom";
@@ -95,6 +96,7 @@ import { CampaignCreationForm } from "@/components/brand/CampaignCreationForm";
 import { BrandOnboarding } from "@/components/brand/BrandOnboarding";
 import { GettingStartedChecklist } from "@/components/brand/GettingStartedChecklist";
 import { BrandPaymentMethodsSection } from "@/components/brand/BrandPaymentMethodsSection";
+import { StoreIntegrationsPanel } from "@/components/brand/StoreIntegrationsPanel";
 import { ImageCropper } from "@/components/ui/image-cropper";
 import { MockPaymentModal } from "@/components/payment/MockPaymentModal";
 import { useAuth } from "@/hooks/useAuth";
@@ -1078,6 +1080,7 @@ export default function BrandDashboard() {
   const sidebarItems = [
     { id: "profile", icon: User, label: "Profile" },
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { id: "integrations", icon: Plug, label: "Integrations" },
     { id: "wallet", icon: Wallet, label: "Wallet" },
     { id: "payment-methods", icon: CreditCard, label: "Payment Methods" },
     { id: "settings", icon: Settings, label: "Settings" },
@@ -1195,6 +1198,12 @@ export default function BrandDashboard() {
 
         {activeTab === "profile" && renderProfileSection()}
         {activeTab === "dashboard" && renderDashboardSection()}
+
+        {activeTab === "integrations" && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <StoreIntegrationsPanel />
+          </motion.div>
+        )}
 
         {activeTab === "wallet" && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
