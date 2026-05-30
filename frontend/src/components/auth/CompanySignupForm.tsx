@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { sanitizeInput, isValidEmail } from "@/lib/sanitize";
+import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 
 type Category = { id: string; name: string; icon?: string };
 
@@ -303,7 +304,9 @@ export function CompanySignupForm({
           value={companyPassword}
           onChange={(e) => setCompanyPassword(e.target.value)}
           autoComplete="new-password"
+          data-testid="company-signup-password-input"
         />
+        <PasswordStrengthMeter password={companyPassword} />
       </div>
 
       {/* Confirm Password */}

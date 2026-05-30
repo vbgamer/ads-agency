@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { sanitizeInput, isValidEmail } from "@/lib/sanitize";
+import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 
 type Props = {
   onSubmit: (e: React.FormEvent) => void;
@@ -202,7 +203,9 @@ export function UserSignupForm({
           value={userPassword}
           onChange={(e) => setUserPassword(e.target.value)}
           autoComplete="new-password"
+          data-testid="user-signup-password-input"
         />
+        <PasswordStrengthMeter password={userPassword} />
       </div>
 
       {/* Confirm Password */}

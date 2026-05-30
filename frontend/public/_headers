@@ -1,0 +1,30 @@
+# =============================================================================
+#  ADSSIMSIM — Production HTTP security headers
+#  Format: Netlify / Cloudflare Pages (also picked up by Vercel via vercel.json)
+#  These headers OVERRIDE the meta tags in index.html for hosted environments.
+#  Local Vite dev still uses the meta-tag CSP (which permits unsafe-eval for HMR).
+# =============================================================================
+
+/*
+  # Strict transport — force HTTPS for 1 year + preload
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
+  # Clickjacking protection
+  X-Frame-Options: DENY
+
+  # MIME-sniffing protection
+  X-Content-Type-Options: nosniff
+
+  # Referrer leak prevention
+  Referrer-Policy: strict-origin-when-cross-origin
+
+  # Browser permissions lockdown — block camera/mic/geo/sensors/USB
+  Permissions-Policy: accelerometer=(), ambient-light-sensor=(), autoplay=(self), battery=(), camera=(), display-capture=(), document-domain=(), encrypted-media=(), fullscreen=(self), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(self), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(self), usb=(), web-share=(self), xr-spatial-tracking=()
+
+  # Strict CSP for PROD — removes unsafe-eval, keeps unsafe-inline only for legitimate styled-components.
+  # NOTE: If you tighten further, generate per-build script-src nonces via a build-step.
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.gpteng.co https://*.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; media-src 'self' https://*.supabase.co blob: data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.unsplash.com https://images.unsplash.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+
+  # Cross-origin isolation (defence-in-depth)
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-site

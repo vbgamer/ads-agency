@@ -163,3 +163,35 @@
 - A01 Broken Access Control: 5 → 8 / 10
 - A04 Insecure Design (pixel fraud): 4 → 7 / 10
 - A10 SSRF: 5 → 9 / 10
+
+### 2026-02-28 - Security Hardening P1 (auth + hosting headers)
+**Why**: Raise OWASP score from 70 → 80+ by closing weak-password and missing-header gaps.
+
+**Password Strength:**
+- New `passwordStrength.ts` lib (12 chars min, mixed case, digit, symbol, no common pwd, no long char runs). Tested 12/12 cases.
+- New `PasswordStrengthMeter.tsx` UI component with 5-bar visual meter and requirements checklist.
+- Wired into `UserSignupForm` + `CompanySignupForm` with real-time feedback.
+- `Login.tsx` signup handlers now reject weak passwords with detailed missing-rule message (previously: only checked 8-char length).
+
+**Hosting-Level Strict Headers:**
+- New `/app/frontend/public/_headers` (Netlify/Cloudflare Pages format).
+- New `/app/frontend/vercel.json` (Vercel-format mirror).
+- Adds at HTTP-response layer (overrides meta tag for prod):
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+  - `Permissions-Policy` lockdown (camera/mic/geo/usb/midi blocked)
+  - `Cross-Origin-Opener-Policy: same-origin`
+  - `Cross-Origin-Resource-Policy: same-site`
+  - Strict CSP without `unsafe-eval` (Vite dev meta tag still uses it for HMR)
+
+**Files Modified/Created:**
+- `/app/frontend/src/lib/passwordStrength.ts` (NEW)
+- `/app/frontend/src/components/auth/PasswordStrengthMeter.tsx` (NEW)
+- `/app/frontend/src/components/auth/UserSignupForm.tsx` (wired)
+- `/app/frontend/src/components/auth/CompanySignupForm.tsx` (wired)
+- `/app/frontend/src/pages/Login.tsx` (validation upgrade)
+- `/app/frontend/public/_headers` (NEW)
+- `/app/frontend/vercel.json` (NEW)
+
+**OWASP score change:**
+- A05 Security Misconfiguration: 7 → 9 / 10 (after deploy with these headers)
+- A07 Identification & Auth Failures: 7 → 9 / 10

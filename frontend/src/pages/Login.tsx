@@ -14,6 +14,7 @@ import { UserSignupForm } from "@/components/auth/UserSignupForm";
 import { useAuth } from "@/hooks/useAuth";
 import { useHeroStats } from "@/hooks/useHeroStats";
 import { formatIndianCurrency, formatCount } from "@/lib/utils";
+import { evaluatePasswordStrength } from "@/lib/passwordStrength";
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams();
@@ -199,8 +200,11 @@ export default function LoginPage() {
       return;
     }
 
-    if (companyPassword.length < 8) {
-      toast.error("Password must be at least 8 characters");
+    const pwStrength = evaluatePasswordStrength(companyPassword);
+    if (!pwStrength.isAcceptable) {
+      toast.error(
+        `Password too weak. Missing: ${pwStrength.failedChecks.join(", ")}`
+      );
       return;
     }
 
@@ -237,8 +241,11 @@ export default function LoginPage() {
       return;
     }
 
-    if (userPassword.length < 8) {
-      toast.error("Password must be at least 8 characters");
+    const userPwStrength = evaluatePasswordStrength(userPassword);
+    if (!userPwStrength.isAcceptable) {
+      toast.error(
+        `Password too weak. Missing: ${userPwStrength.failedChecks.join(", ")}`
+      );
       return;
     }
 
