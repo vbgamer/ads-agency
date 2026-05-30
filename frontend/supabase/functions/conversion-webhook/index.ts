@@ -51,6 +51,15 @@ function getWebhookSecret(source: string): string | null {
   return Deno.env.get(envName) || null;
 }
 
+// Extract best-guess client IP for rate limiting
+function getClientIp(req: Request): string {
+  const xff = req.headers.get("x-forwarded-for")
+  if (xff) return xff.split(",")[0].trim()
+  return req.headers.get("cf-connecting-ip")
+      || req.headers.get("x-real-ip")
+      || "unknown"
+}
+
 const handler = async (req: Request): Promise<Response> => {
   const origin = req.headers.get("origin")
   const corsHeaders = getCorsHeaders(origin)
@@ -68,6 +77,23 @@ const handler = async (req: Request): Promise<Response> => {
     const headerSource = req.headers.get("x-webhook-source")
     const signature = req.headers.get("x-webhook-signature") || ""
     const campaignIdFromUrl = url.searchParams.get("campaign_id")
+    const clientIp = getClientIp(req)
+
+    // ============================================================
+    //  RATE LIMIT — per IP, 30 requests / 60s window
+    // ============================================================
+    const { data: ipAllowed } = await supabase.rpc("check_rate_limit", {
+      p_bucket_key:  `ip:${clientIp}`,
+      p_endpoint:    "/conversion-webhook",
+      p_max_events:  30,
+      p_window_secs: 60,
+    })
+    if (ipAllowed === false) {
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded" }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      )
+    }
 
     const rawBody = await req.text()
 
@@ -132,7 +158,8 @@ const handler = async (req: Request): Promise<Response> => {
     const campaignId = campaignIdFromUrl || (rawPayload.campaign_id as string)
     const trackingId = (rawPayload.tracking_id || rawPayload.ref || rawPayload.click_id) as string
     const eventType = (rawPayload.event_type as string) || "purchase"
-    
+    const expectedCompanyId = (rawPayload.company_id as string) || null
+
     if (!trackingId) {
       await supabase.from("webhook_logs").insert({
         source,
@@ -149,6 +176,23 @@ const handler = async (req: Request): Promise<Response> => {
       )
     }
 
+    // ============================================================
+    //  RATE LIMIT — per tracking_id, 5 attempts / 60s
+    //  Prevents replay/brute-force against a single tracking link
+    // ============================================================
+    const { data: trkAllowed } = await supabase.rpc("check_rate_limit", {
+      p_bucket_key:  `trk:${trackingId}`,
+      p_endpoint:    "/conversion-webhook",
+      p_max_events:  5,
+      p_window_secs: 60,
+    })
+    if (trkAllowed === false) {
+      return new Response(
+        JSON.stringify({ error: "Too many attempts for this tracking ID" }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      )
+    }
+
     // Process the conversion
     const { data: result, error: rpcError } = await supabase.rpc("process_conversion", {
       p_tracking_id: trackingId,
@@ -160,9 +204,11 @@ const handler = async (req: Request): Promise<Response> => {
         event_currency: rawPayload.event_currency || rawPayload.currency || "INR",
         order_id: rawPayload.order_id,
         customer_email: rawPayload.customer_email,
+        client_ip: clientIp,
         timestamp: new Date().toISOString(),
         campaign_id: campaignId,
       },
+      p_expected_company_id: expectedCompanyId,
     })
 
     const success = result?.success === true

@@ -68,13 +68,45 @@ export function isValidEmail(email: string): boolean {
 /**
  * Validate URL - only allow http/https protocols
  * Prevents javascript: and data: protocol attacks
+ * Also blocks internal/private/loopback IP ranges (SSRF guard)
  */
 export function isValidUrl(url: string): boolean {
   if (!url) return false;
-  
+
   try {
     const parsed = new URL(url);
-    return ['http:', 'https:'].includes(parsed.protocol);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
+
+    // SSRF guard — reject internal hostnames and IP literals
+    const host = parsed.hostname.toLowerCase();
+
+    // Block bare hostnames that are clearly internal
+    if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local')) {
+      return false;
+    }
+
+    // Block IPv6 loopback / link-local / unique-local
+    if (host === '[::1]' || host.startsWith('[fc') || host.startsWith('[fd') || host.startsWith('[fe80')) {
+      return false;
+    }
+
+    // Block IPv4 private / loopback / link-local / metadata ranges
+    const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (ipv4) {
+      const [, a, b] = ipv4.map(Number) as unknown as number[];
+      if (
+        a === 10 ||                          // 10.0.0.0/8
+        a === 127 ||                         // 127.0.0.0/8 loopback
+        (a === 169 && b === 254) ||          // 169.254.0.0/16 link-local + AWS/GCP metadata
+        (a === 172 && b >= 16 && b <= 31) || // 172.16.0.0/12
+        (a === 192 && b === 168) ||          // 192.168.0.0/16
+        a === 0                              // 0.0.0.0/8
+      ) {
+        return false;
+      }
+    }
+
+    return true;
   } catch {
     return false;
   }
