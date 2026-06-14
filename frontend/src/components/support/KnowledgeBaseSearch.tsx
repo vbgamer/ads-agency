@@ -35,21 +35,58 @@ export function KnowledgeBaseSearch({ onSelectArticle, onCreateTicket }: Knowled
   const highlightMatch = (text: string, searchQuery: string): React.ReactNode => {
     if (!searchQuery.trim()) return text;
 
-    const words = searchQuery.trim().split(/\s+/).filter(Boolean);
-    const escaped = words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-    const regex = new RegExp(`(${escaped.join("|")})`, "gi");
-    const parts = text.split(regex);
+    // Bound the number of words & lengths to keep matching predictable.
+    const MAX_WORDS = 8;
+    const MAX_WORD_LEN = 50;
+    const words = searchQuery
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, MAX_WORDS)
+      .map((w) => w.slice(0, MAX_WORD_LEN).toLowerCase());
+    if (words.length === 0) return text;
 
-    // When splitting with a single capturing group, odd-indexed parts are matches
-    return parts.map((part, i) =>
-      i % 2 === 1 ? (
-        <mark key={i} className="bg-primary/20 text-foreground rounded px-0.5">
-          {part}
+    // Manual case-insensitive scan — avoids new RegExp() entirely so there's
+    // no ReDoS surface from user input. Linear in `text.length`.
+    const lower = text.toLowerCase();
+    type Range = { start: number; end: number };
+    const ranges: Range[] = [];
+    for (const word of words) {
+      if (!word) continue;
+      let idx = 0;
+      while ((idx = lower.indexOf(word, idx)) !== -1) {
+        ranges.push({ start: idx, end: idx + word.length });
+        idx += word.length;
+      }
+    }
+    if (ranges.length === 0) return text;
+
+    // Merge overlapping ranges
+    ranges.sort((a, b) => a.start - b.start);
+    const merged: Range[] = [ranges[0]];
+    for (let i = 1; i < ranges.length; i++) {
+      const last = merged[merged.length - 1];
+      if (ranges[i].start <= last.end) {
+        last.end = Math.max(last.end, ranges[i].end);
+      } else {
+        merged.push(ranges[i]);
+      }
+    }
+
+    // Build the output parts in order
+    const nodes: React.ReactNode[] = [];
+    let cursor = 0;
+    merged.forEach((r, i) => {
+      if (cursor < r.start) nodes.push(text.slice(cursor, r.start));
+      nodes.push(
+        <mark key={`m-${i}`} className="bg-primary/20 text-foreground rounded px-0.5">
+          {text.slice(r.start, r.end)}
         </mark>
-      ) : (
-        part || null
-      )
-    );
+      );
+      cursor = r.end;
+    });
+    if (cursor < text.length) nodes.push(text.slice(cursor));
+    return nodes;
   };
 
   return (

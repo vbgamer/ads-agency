@@ -132,7 +132,7 @@ serve(async (req) => {
           }),
         });
       } catch (webhookError) {
-        console.error(`Failed to register webhook ${topic}:`, webhookError);
+        console.error("Failed to register webhook", topic, webhookError);
       }
     }
 
