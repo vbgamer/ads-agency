@@ -1,8 +1,3 @@
-# Legacy / unused code — do not include in security scans.
-# `frontend_old/` is leftover from the initial CRA scaffold before the
-# Vite migration. The active app lives in /app/frontend/.
-frontend_old/
-
 # Build artifacts
 **/dist/
 **/build/
