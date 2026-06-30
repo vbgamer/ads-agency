@@ -165,7 +165,9 @@ export default function UserDashboard() {
 
   // Redirect if not authenticated as user
   useEffect(() => {
-    if (!authLoading && (!user || userType !== 'user')) {
+    // Wait until auth is fully loaded AND userType is determined
+    if (authLoading || (user && userType === null)) return;
+    if (!user || userType !== 'user') {
       navigate("/login", { replace: true });
     }
   }, [user, userType, authLoading, navigate]);

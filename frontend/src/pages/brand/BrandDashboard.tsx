@@ -163,7 +163,9 @@ export default function BrandDashboard() {
 
   // Redirect if not authenticated as company
   useEffect(() => {
-    if (!authLoading && (!user || userType !== 'company')) {
+    // Wait until auth is fully loaded AND userType is determined
+    if (authLoading || (user && userType === null)) return;
+    if (!user || userType !== 'company') {
       navigate("/login", { replace: true });
     }
   }, [user, userType, authLoading, navigate]);
