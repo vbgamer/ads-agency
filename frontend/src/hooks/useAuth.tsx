@@ -77,46 +77,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserData = async (userId: string) => {
     try {
       // Check role from user_roles table (source of truth for authorization)
-      const { data: roleData } = await supabase
+      const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .maybeSingle();
+
+      if (roleError) {
+        throw roleError;
+      }
 
       const userRole = roleData?.role;
       setIsAdmin(userRole === 'admin');
 
       if (userRole === 'company') {
         // Fetch company data
-        const { data: companyData } = await supabase
+        const { data: companyData, error: companyError } = await supabase
           .from('companies')
           .select('*')
           .eq('id', userId)
           .maybeSingle();
+
+        if (companyError) {
+          throw companyError;
+        }
 
         if (companyData) {
           setCompany(companyData);
           setUserType('company');
           setProfile(null);
           window.dispatchEvent(new Event('brandAuthChange'));
+        } else {
+          // Fallback if company metadata is missing
+          setUserType('company');
         }
       } else {
         // Treat as regular user (including 'user', 'admin', 'moderator' roles)
-        const { data: profileData } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
           .maybeSingle();
+
+        if (profileError) {
+          throw profileError;
+        }
 
         if (profileData) {
           setProfile(profileData);
           setUserType('user');
           setCompany(null);
           window.dispatchEvent(new Event('userAuthChange'));
+        } else {
+          // Fallback if user profile metadata is missing
+          setUserType('user');
         }
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('Error fetching user data, falling back to default user role:', error);
+      // Fallback: default to 'user' role if database queries fail
+      setUserType('user');
     } finally {
       setIsLoading(false);
     }
@@ -129,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
+        // emailRedirectTo: redirectUrl,
         data: metadata,
       },
     });
@@ -173,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
+        // emailRedirectTo: redirectUrl,
         data: { name: companyData.name },
       },
     });
@@ -218,51 +238,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error };
     }
 
-    // Determine user type from user_roles table (source of truth)
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    if (currentUser) {
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
+    let detectedType: UserType = 'user';
 
-      let detectedType: UserType = roleData?.role === 'company' ? 'company' : 'user';
-      
-      // Fallback: if no role found, check companies table
-      if (!roleData) {
-        const { data: companyCheck } = await supabase
-          .from('companies')
-          .select('id')
-          .eq('id', currentUser.id)
+    try {
+      // Determine user type from user_roles table (source of truth)
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', currentUser.id)
           .maybeSingle();
+
+        detectedType = roleData?.role === 'company' ? 'company' : 'user';
         
-        if (companyCheck) {
-          // Auto-assign company role for data integrity
-          await supabase.from('user_roles').insert({
-            user_id: currentUser.id,
-            role: 'company'
-          });
-          detectedType = 'company';
-        } else {
-          // Auto-assign user role
-          await supabase.from('user_roles').insert({
-            user_id: currentUser.id,
-            role: 'user'
-          });
-          detectedType = 'user';
+        // Fallback: if no role found, check companies table
+        if (!roleData) {
+          const { data: companyCheck } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('id', currentUser.id)
+            .maybeSingle();
+          
+          if (companyCheck) {
+            // Auto-assign company role for data integrity
+            try {
+              await supabase.from('user_roles').insert({
+                user_id: currentUser.id,
+                role: 'company'
+              });
+            } catch (err) {
+              console.error("Auto-assigning company role failed:", err);
+            }
+            detectedType = 'company';
+          } else {
+            // Auto-assign user role
+            try {
+              await supabase.from('user_roles').insert({
+                user_id: currentUser.id,
+                role: 'user'
+              });
+            } catch (err) {
+              console.error("Auto-assigning user role failed:", err);
+            }
+            detectedType = 'user';
+          }
+        }
+        
+        // Check and update subscription status for regular users
+        if (detectedType === 'user') {
+          try {
+            await supabase.rpc('check_subscription_status', { p_user_id: currentUser.id });
+          } catch (rpcError) {
+            console.error("check_subscription_status RPC failed:", rpcError);
+          }
         }
       }
-      
-      // Check and update subscription status for regular users
-      if (detectedType === 'user') {
-        await supabase.rpc('check_subscription_status', { p_user_id: currentUser.id });
-      }
-      
-      return { error: null, userType: detectedType };
+    } catch (dbError) {
+      console.error("Database queries failed during sign-in, defaulting to regular user:", dbError);
+      detectedType = 'user';
     }
 
-    return { error: null };
+    return { error: null, userType: detectedType };
   };
 
   const refreshProfile = async () => {
