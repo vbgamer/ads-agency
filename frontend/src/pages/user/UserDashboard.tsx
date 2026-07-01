@@ -340,12 +340,12 @@ export default function UserDashboard() {
     { id: "tips" as const, label: "Support Us", icon: Heart },
   ];
 
-  // Loading state
-  if (authLoading) {
+  // Loading state - show skeleton while auth or profile is loading
+  if (authLoading || (user && userType === null)) {
     return <DashboardSkeleton />;
   }
 
-  if (!user || !profile) {
+  if (!user) {
     return null;
   }
 
