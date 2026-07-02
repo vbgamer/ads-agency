@@ -7,15 +7,12 @@ redirects = []
 
 [build]
 publish = "C:\\Users\\Vedant Bhosale\\Desktop\\ADSSIMSIM\\frontend\\dist"
-publishOrigin = "config"
-commandOrigin = "config"
+publishOrigin = "ui"
+commandOrigin = "ui"
 base = "C:\\Users\\Vedant Bhosale\\Desktop\\ADSSIMSIM\\frontend"
 command = "npm run build"
 
 [build.environment]
-VITE_SUPABASE_PROJECT_ID = "wmmyxtzkswsavqqngvuj"
-VITE_SUPABASE_URL = "https://wmmyxtzkswsavqqngvuj.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndtbXl4dHprc3dzYXZxcW5ndnVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5NjMwNTQsImV4cCI6MjA5MDUzOTA1NH0.ZgUs9pathu0RZjLLiX0HuBIUoo1ZeDYMncxjUfEkA0A"
 
 [build.processing]
 
