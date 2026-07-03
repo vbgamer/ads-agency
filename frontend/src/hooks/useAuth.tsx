@@ -62,14 +62,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        console.error("Error getting session:", error);
+        // Clear invalid/corrupt session if database schema error happens
+        if (error.message?.includes("schema") || error.message?.includes("Database error")) {
+          supabase.auth.signOut().catch(() => {});
+          localStorage.clear();
+        }
+        setIsLoading(false);
+        return;
+      }
+      const session = data?.session;
+      setSession(session ?? null);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserData(session.user.id);
       } else {
         setIsLoading(false);
       }
+    }).catch(err => {
+      console.error("Session check caught error:", err);
+      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -134,8 +148,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserType('user');
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching user data, falling back to default user role:', error);
+      // Clear invalid/corrupt session if database schema error happens
+      if (error?.message?.includes("schema") || error?.message?.includes("Database error")) {
+        supabase.auth.signOut().catch(() => {});
+        localStorage.clear();
+      }
       // Fallback: default to 'user' role if database queries fail
       setUserType('user');
     } finally {
